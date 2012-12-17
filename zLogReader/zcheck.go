@@ -14,13 +14,48 @@ import (
 )
 
 var zlog *string = flag.String("log", "/var/log/zimbra.log", "location of zimbra log file")
+var v *bool = flag.Bool("v", false, "verbosity true or false")
 
 func usage() {
 	flag.PrintDefaults()
 	os.Exit(-1)
 }
 
+func spinner(p int) int {
+	if p >= 4 {
+		return 0
+	}
+	p++
+	return p
+}
+
+func saslUserName(l *[]byte, v *bool) {
+	if *v == true {
+		fmt.Println(string(*l))
+	}
+}
+
+func nonDel(l *[]byte, v *bool) {
+	if *v == true {
+		fmt.Println(string(*l))
+	}
+}
+
+func authFail(l *[]byte, v *bool) {
+	if *v == true {
+		fmt.Println(string(*l))
+	}
+}
+
+func statDefer(l *[]byte, v *bool) {
+	if *v == true {
+		fmt.Println(string(*l))
+	}
+}
+
 func main() {
+	s := 0
+	sSlices := []string{"-", "\\", "|", "/", "|"}
 	flag.Parse()
 	fi, err := os.Open(*zlog)
 	defer fi.Close()
@@ -37,11 +72,17 @@ func main() {
 		}
 		switch {
 		case strings.Contains(string(line), "sasl_username="):
-			fmt.Println(string(line))
+			saslUserName(&line, v)
 		case strings.Contains(string(line), "non-delivery notification:"):
-			fmt.Println(string(line))
+			nonDel(&line, v)
+		case strings.Contains(string(line), "authentication failed for"):
+			authFail(&line, v)
+		case strings.Contains(string(line), "status=deferred"):
+			statDefer(&line, v)
 		default:
-			fmt.Printf(".\b")
+			s = spinner(s)
+			fmt.Printf(sSlices[s])
+			fmt.Printf("\b")
 		}
 
 	}
