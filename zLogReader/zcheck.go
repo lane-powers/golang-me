@@ -11,12 +11,14 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 )
 
 var zlog *string = flag.String("log", "/var/log/zimbra.log", "location of zimbra log file")
 var minCount *int = flag.Int("min", 5, "minimum entry counts for a record to be reported")
+var regCleaner = regexp.MustCompile("[><,=\\]]|sasl_username|(.*\\[|)")
 
 func usage() {
 	flag.PrintDefaults()
@@ -31,9 +33,9 @@ func spinner(p *int) {
 }
 
 func saslUserName(l *string, mySaslUser map[string]int, mySaslSource map[string]int) {
-	z := strings.Split(*l, " ")
-	addy := strings.Replace(z[8], "sasl_username=", "", -1)
-	src := strings.Replace(z[6], ",", "", -1)
+	z := strings.Fields(*l)
+	addy := regCleaner.ReplaceAllString(z[8], "")
+	src := regCleaner.ReplaceAllString(z[6], "")
 	aval, aok := mySaslUser[addy]
 	// track it by sending email
 	if aok {
@@ -51,19 +53,19 @@ func saslUserName(l *string, mySaslUser map[string]int, mySaslSource map[string]
 }
 
 func authFail(l *string, myAuthFail map[string]int) {
-	z := strings.Split(*l, " ")
-	addy := z[6]
+	z := strings.Fields(*l)
+	addy := regCleaner.ReplaceAllString(z[6], "")
 	val, ok := myAuthFail[addy]
 	if ok {
-		myAuthFail[addy] = int(val) +1
+		myAuthFail[addy] = int(val) + 1
 	} else {
 		myAuthFail[addy] = 1
 	}
 }
 
 func statDefer(l *string, myDefList map[string]int) {
-	z := strings.Split(*l, " ")
-	addy := strings.Replace(strings.Replace(z[6], ">,", "", -1), "to=<", "", -1)
+	z := strings.Fields(*l)
+	addy := regCleaner.ReplaceAllString(z[6], "")
 	val, ok := myDefList[addy]
 	if ok {
 		myDefList[addy] = int(val) + 1
@@ -130,12 +132,12 @@ func main() {
 		}
 	}
 
-	fmt.Printf("Deferred connections >= %d:", *minCount)
+	fmt.Printf("Deferred connections >= %d:\n", *minCount)
 	sortPrint(minCount, defList)
 	fmt.Printf("SASL user auths per username >= %d:\n", *minCount)
 	sortPrint(minCount, saslUser)
 	fmt.Printf("SASL user auths per source IP >= %d:\n", *minCount)
 	sortPrint(minCount, saslSource)
 	fmt.Printf("Failed connections per username >= %d\n", *minCount)
-	sortPrint(minCount, failList) 
+	sortPrint(minCount, failList)
 }
