@@ -18,7 +18,7 @@ import (
 
 var zlog *string = flag.String("log", "/var/log/zimbra.log", "location of zimbra log file")
 var minCount *int = flag.Int("min", 5, "minimum entry counts for a record to be reported")
-var regCleaner = regexp.MustCompile("[><,=\\]]|sasl_username|(.*\\[|)")
+var regCleaner = regexp.MustCompile("to=|[><,=\\]]|sasl_username|(.*\\[|)")
 
 func usage() {
 	flag.PrintDefaults()
